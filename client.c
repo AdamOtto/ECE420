@@ -6,7 +6,7 @@
 #include<arpa/inet.h>
 #include<unistd.h>
 
-int main()
+int main(int argc, char** argv)
 {
 	struct sockaddr_in sock_var;
 	int clientFileDescriptor=socket(AF_INET,SOCK_STREAM,0);
@@ -18,8 +18,8 @@ int main()
 
 	if(connect(clientFileDescriptor,(struct sockaddr*)&sock_var,sizeof(sock_var))>=0)
 	{
-		printf("Connected to server %dn",clientFileDescriptor);
-		printf("nEnter Srting to send: ");
+		printf("Connected to server %d",clientFileDescriptor);
+		printf(", Enter Srting to send: ");
 		scanf("%s",str_clnt);
 		write(clientFileDescriptor,str_clnt,20);
 		read(clientFileDescriptor,str_ser,20);
