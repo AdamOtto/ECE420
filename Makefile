@@ -6,17 +6,11 @@ FLAGS = -g -Wall -std=c++11
 
 all: client server
 
-client: client.c
-	$(CC) $(FLAGS) $(LIB) client.c -o client
+client: client.c timer.h
+	$(CC) $(FLAGS) client.c -o client $(LIBS)
 
 server: server.c
-	$(CC) $(FLAGS) $(LIB) server.c -o server
-
-
+	$(CC) $(FLAGS) server.c -o server $(LIBS)
 
 clean:
 	rm -rf *.o server client
-<<<<<<< HEAD
-
-=======
->>>>>>> 9f34ea4a1ac4f00aa547a0ecdf03903d5ef3b73b
