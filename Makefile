@@ -16,4 +16,7 @@ server: server.c
 
 clean:
 	rm -rf *.o server client
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9f34ea4a1ac4f00aa547a0ecdf03903d5ef3b73b
