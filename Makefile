@@ -3,5 +3,4 @@ all:
 	g++ -g -Wall -o client client.c -lpthread 
 
 clean:
-	rm -rf *o server
-	rm -rf *o client
+	rm -rf *.o server client
