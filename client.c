@@ -21,6 +21,11 @@ int main(int argc, char** argv)
 	char str_clnt[20],str_ser[20];
 	double start, finish;
 
+	//Get rid of these later...
+	char r = 'r';
+	char five = '5';
+	char endLine = '\0';
+
 	sock_var.sin_addr.s_addr=inet_addr(address);
 	sock_var.sin_port=port;
 	sock_var.sin_family=AF_INET;
@@ -31,6 +36,8 @@ int main(int argc, char** argv)
 		cout << "Connected to Server" << clientFileDescriptor << endl;
 		cout << "nEnter Srting to send: ";
 		cin >> str_clnt;
+		write(clientFileDescriptor,&r,1);		
+		write(clientFileDescriptor,&five,1);
 		write(clientFileDescriptor,str_clnt,20);
 		read(clientFileDescriptor,str_ser,20);
 		cout << "Response from Server: " << str_ser << endl;

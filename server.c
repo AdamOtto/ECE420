@@ -1,5 +1,6 @@
 #include<stdio.h>
 #include<stdlib.h>
+#include<cstring>
 #include<sys/types.h>
 #include<sys/socket.h>
 #include<netinet/in.h>
@@ -25,13 +26,35 @@ int NumberOfStrings;
 char** library;
 pthread_mutex_t* mutex;
 
+
+int getIntFromString(char * str)
+{
+	int i;
+	for(i = 1; i < 20; i++)
+	{
+		//48 = '0', 57 = '9'
+		if((int)str[i] < 48 || (int)str[i] > 57)
+		{
+			break;
+		}		
+	}
+	return stoi(std::string(str).substr(1, i));
+}
+
+char* readBuffer (int message)
+{
+	
+}
+
 void *ServerEcho(void *args)
 {
 	long clientFileDescriptor=(long)args;
-	char * str = new char[20];
+	char * str = new char[100];
 	bool Read;
+
 	//Get whether the user wants to read or write.
-	read(clientFileDescriptor,str,20);
+	read(clientFileDescriptor,str,100);
+	cout << str << endl;
 	if (str[0] == 'r')
 	{
 		Read = true;
@@ -40,9 +63,10 @@ void *ServerEcho(void *args)
 	{
 		Read = false;
 	}
+
 	//Get Which spot in the library the client wants to read/write from
-	read(clientFileDescriptor,str,20);
-	int index = atoi(str);
+	int index = getIntFromString(str);
+	cout << "Index: " << index <<endl;
 	if(index >= NumberOfStrings)
 	{
 		write(clientFileDescriptor, "Index out of bounds.",20);
@@ -51,6 +75,9 @@ void *ServerEcho(void *args)
 	}	
 	
 	//Read or Write opreation.
+	cout << "Reading a second time..." << endl;
+	read(clientFileDescriptor,str,20);
+	cout << str << endl;
 	pthread_mutex_lock(&mutex[index]);
 	if (Read)
 	{
@@ -63,7 +90,7 @@ void *ServerEcho(void *args)
 		//Get the message of the client and set it to library.
 		read(clientFileDescriptor,str,20);
 		printf("nreading from client: %s\n",str);
-		library[index] = str;
+		memcpy(library[index], str, 20);
 		//Re-package str
 		std::stringstream s;
 		s << library[index];
@@ -71,14 +98,11 @@ void *ServerEcho(void *args)
 	}
 	pthread_mutex_unlock(&mutex[index]);
 
-	
-
 	//Echo back to the client
 	write(clientFileDescriptor,str,20);
-	printf("nechoing back to client");
+	printf("nechoing back to client\n");
 	close(clientFileDescriptor);
 }
-
 
 int main(int argc, char** argv)
 {
@@ -96,9 +120,10 @@ int main(int argc, char** argv)
 	{
 		std::stringstream s;
 		s << "String " << i << ": the initial value";
-		library[i] = (char*)s.str().c_str();
+		const char* sc = s.str().c_str();
+		library[i] = new char[20];
+		memcpy(library[i], sc, 20);
 	}	
-
 	//Initialize the mutex(s)
 	mutex = new pthread_mutex_t [NumberOfStrings];
 	for (int i = 0; i < NumberOfStrings; i++)
@@ -114,21 +139,21 @@ int main(int argc, char** argv)
 	sock_var.sin_family=AF_INET;
 	if(bind(serverFileDescriptor,(struct sockaddr*)&sock_var,sizeof(sock_var))>=0)
 	{
-		printf("nsocket has been created");
+		printf("nsocket has been created\n");
 		listen(serverFileDescriptor,2000); 
 		while(1)        //loop infinity
 		{
 			for(i=0;i<20;i++)      //can support 20 clients at a time
 			{
 				clientFileDescriptor=accept(serverFileDescriptor,NULL,NULL);
-				printf("nConnected to client %dn",clientFileDescriptor);
+				printf("nConnected to client %d\n",clientFileDescriptor);
 				pthread_create(&t[i],NULL,ServerEcho, (void *)clientFileDescriptor);
 			}
 		}
 		close(serverFileDescriptor);
 	}
 	else{
-		printf("nsocket creation failed");
+		printf("nsocket creation failed\n");
 	}
 	return 0;
 }
