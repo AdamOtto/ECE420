@@ -20,6 +20,7 @@ using std::vector;
 using std::string;
 using std::ifstream;
 using std::ofstream;
+using namespace std;
 
 //Default port # is 3000
 int NumberOfStrings;
@@ -30,7 +31,7 @@ pthread_mutex_t* mutex;
 int getIntFromString(char * str)
 {
 	int i;
-	for(i = 1; i < 20; i++)
+	for(i = 0; i < 20; i++)
 	{
 		//48 = '0', 57 = '9'
 		if((int)str[i] < 48 || (int)str[i] > 57)
@@ -38,12 +39,11 @@ int getIntFromString(char * str)
 			break;
 		}		
 	}
-	return stoi(std::string(str).substr(1, i));
-}
-
-char* readBuffer (int message)
-{
-	
+	cout << "getIntFromString result: " << std::string(str).substr(0, i) << "\n";
+	stringstream GlorboTheMalignantChannelsOfRoses  ( std::string(str).substr(0, i) );
+	int x = 0;
+	GlorboTheMalignantChannelsOfRoses >> x;
+	return x;
 }
 
 void *ServerEcho(void *args)
@@ -53,7 +53,7 @@ void *ServerEcho(void *args)
 	bool Read;
 
 	//Get whether the user wants to read or write.
-	read(clientFileDescriptor,str,100);
+	read(clientFileDescriptor,str,20);
 	cout << str << endl;
 	if (str[0] == 'r')
 	{
@@ -63,8 +63,10 @@ void *ServerEcho(void *args)
 	{
 		Read = false;
 	}
+	write(clientFileDescriptor,"Ack1\n",20);
 
 	//Get Which spot in the library the client wants to read/write from
+	read(clientFileDescriptor,str,20);
 	int index = getIntFromString(str);
 	cout << "Index: " << index <<endl;
 	if(index >= NumberOfStrings)
@@ -73,7 +75,8 @@ void *ServerEcho(void *args)
 		close(clientFileDescriptor);
 		return NULL;
 	}	
-	
+	write(clientFileDescriptor,"Ack2\n",20);	
+
 	//Read or Write opreation.
 	cout << "Reading a second time..." << endl;
 	read(clientFileDescriptor,str,20);
@@ -88,8 +91,7 @@ void *ServerEcho(void *args)
 	else
 	{
 		//Get the message of the client and set it to library.
-		read(clientFileDescriptor,str,20);
-		printf("nreading from client: %s\n",str);
+		printf("reading from client: %s\n",str);
 		memcpy(library[index], str, 20);
 		//Re-package str
 		std::stringstream s;
@@ -100,7 +102,7 @@ void *ServerEcho(void *args)
 
 	//Echo back to the client
 	write(clientFileDescriptor,str,20);
-	printf("nechoing back to client\n");
+	printf("echoing back to client\n");
 	close(clientFileDescriptor);
 }
 
@@ -123,20 +125,23 @@ int main(int argc, char** argv)
 		const char* sc = s.str().c_str();
 		library[i] = new char[20];
 		memcpy(library[i], sc, 20);
-	}	
+	}
+
 	//Initialize the mutex(s)
 	mutex = new pthread_mutex_t [NumberOfStrings];
-	for (int i = 0; i < NumberOfStrings; i++)
+	for (i = 0; i < NumberOfStrings; i++)
         	pthread_mutex_init(&mutex[i], NULL); 
 	
 	struct sockaddr_in sock_var;
-	int serverFileDescriptor=socket(AF_INET,SOCK_STREAM,0);
-	int clientFileDescriptor;
+	int serverFileDescriptor = socket(AF_INET,SOCK_STREAM,0);
+	int clientFileDescriptor[20];
 	pthread_t t[20];
+	
 
 	sock_var.sin_addr.s_addr=inet_addr("127.0.0.1");
 	sock_var.sin_port= atoi(argv[1]);
 	sock_var.sin_family=AF_INET;
+
 	if(bind(serverFileDescriptor,(struct sockaddr*)&sock_var,sizeof(sock_var))>=0)
 	{
 		printf("nsocket has been created\n");
@@ -145,9 +150,9 @@ int main(int argc, char** argv)
 		{
 			for(i=0;i<20;i++)      //can support 20 clients at a time
 			{
-				clientFileDescriptor=accept(serverFileDescriptor,NULL,NULL);
-				printf("nConnected to client %d\n",clientFileDescriptor);
-				pthread_create(&t[i],NULL,ServerEcho, (void *)clientFileDescriptor);
+				clientFileDescriptor[i] = accept(serverFileDescriptor,NULL,NULL);
+				printf("nConnected to cflient %d\n",clientFileDescriptor[i]);
+				pthread_create(&t[i],NULL,ServerEcho, (void *)clientFileDescriptor[i]);
 			}
 		}
 		close(serverFileDescriptor);
