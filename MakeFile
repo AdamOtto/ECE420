@@ -1,0 +1,2 @@
+gcc -g -fopenmp -Wall REF.c Lab3IO.c -o REF -lpthread -lm
+
