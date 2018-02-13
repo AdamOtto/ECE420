@@ -11,8 +11,10 @@ Compiling:
 #include <math.h>
 #include "omp.h"
 #include "Lab3IO.h"
+#include "timer.h"
 
 #define TOL 0.0005
+#define thread_count 20
 
 int main(int argc, char* argv[])
 {
@@ -21,11 +23,12 @@ int main(int argc, char* argv[])
 	double* X;
 	double temp;
 	int* index;
+	double start, finish;
 
 	/*Load the data*/
 	printf("Loading Input data...\n");
 	Lab3LoadInput(&Au, &size);
-
+	printf("Size: %d\n", size);
 	/*Calculate the solution by serial code*/
 	printf("Creating Vector X...\n");
 	X = CreateVec(size);
@@ -35,50 +38,57 @@ int main(int argc, char* argv[])
 	for (i = 0; i < size; ++i)
 		index[i] = i;
 
-    printf("Starting...");
+    printf("Starting...\n");
+    GET_TIME(start)
     if (size == 1)
         X[0] = Au[0][1] / Au[0][0];
     else{
         /*Gaussian elimination*/
-		
 	for (k = 0; k < size - 1; ++k){
-		// ----------------------------------------------- Omp start here
 	    /*Pivoting*/
 	    temp = 0;
-	    for (i = k, j = 0; i < size; ++i)
+	    j = 0;
+	    for (i = k; i < size; ++i)
 		if (temp < Au[index[i]][k] * Au[index[i]][k]){
 		    temp = Au[index[i]][k] * Au[index[i]][k];
-		    j = i;
+		    j = fmax(i, j);
 		}
+	 
 	    if (j != k)/*swap*/{
 		i = index[j];
 		index[j] = index[k];
 		index[k] = i;
 	    }
+
 	    /*calculating*/
+	    
 	    for (i = k + 1; i < size; ++i){
 		temp = Au[index[i]][k] / Au[index[k]][k];
-		for (j = k; j < size + 1; ++j)
+		for (j = k; j < size + 1; ++j){
 		    Au[index[i]][j] -= Au[index[k]][j] * temp;
-	    } 
-		// ----------------------------------------------- Omp end here
+		}
+    	    }
 	}
 		
         /*Jordan elimination*/
-        for (k = size - 1; k > 0; --k){
-            for (i = k - 1; i >= 0; --i ){
-                temp = Au[index[i]][k] / Au[index[k]][k];
-                Au[index[i]][k] -= temp * Au[index[k]][k];
-                Au[index[i]][size] -= temp * Au[index[k]][size];
-            } 
-        }
+	#	pragma omp parallel for num_threads(thread_count)	\
+		default(none) shared(Au, index, size) private (i, temp)
+	for (k = size - 1; k > 0; --k){
+	    for (i = k - 1; i >= 0; --i ){
+		temp = Au[index[i]][k] / Au[index[k]][k];
+		Au[index[i]][k] -= temp * Au[index[k]][k];
+		Au[index[i]][size] -= temp * Au[index[k]][size];
+	    } 
+	}
+
         /*solution*/
-        for (k=0; k< size; ++k)
-            X[k] = Au[index[k]][size] / Au[index[k]][k];
+	for (k=0; k< size; ++k)
+	    X[k] = Au[index[k]][size] / Au[index[k]][k];
     }
-	
+    GET_TIME(finish)
     DestroyVec(X);
     DestroyMat(Au, size);
     free(index);
-	return 0;	
+    printf("Done\n%lf\n", finish - start);
+    return 0;	
 }
