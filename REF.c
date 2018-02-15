@@ -18,12 +18,24 @@ Compiling:
 
 int main(int argc, char* argv[])
 {
-	int i, j, k, size;
+	int i, j, k, size, numThreads;
 	double** Au;
 	double* X;
 	double temp;
 	int* index;
 	double start, finish;
+
+	if(argc == 1)
+	{
+		printf("No arguments given. Using default 20 threads.\n");
+		numThreads = thread_count;
+	}
+	else
+	{
+		numThreads = atoi(argv[1]);
+		printf("ThreadCount = %d.\n", numThreads);		
+	}
+	
 
 	/*Load the data*/
 	printf("Loading Input data...\n");
@@ -35,8 +47,9 @@ int main(int argc, char* argv[])
 
 	printf("Initializing index...\n");
 	index = malloc(size * sizeof(int));
-	for (i = 0; i < size; ++i)
+	for (i = 0; i < size; ++i){
 		index[i] = i;
+	}
 
     printf("Starting...\n");
     GET_TIME(start)
@@ -48,12 +61,13 @@ int main(int argc, char* argv[])
 	    /*Pivoting*/
 	    temp = 0;
 	    j = 0;
+
 	    for (i = k; i < size; ++i)
 		if (temp < Au[index[i]][k] * Au[index[i]][k]){
 		    temp = Au[index[i]][k] * Au[index[i]][k];
-		    j = fmax(i, j);
+		    j = i;
 		}
-	 
+
 	    if (j != k)/*swap*/{
 		i = index[j];
 		index[j] = index[k];
@@ -61,7 +75,8 @@ int main(int argc, char* argv[])
 	    }
 
 	    /*calculating*/
-	    
+	    #	pragma omp parallel for num_threads(numThreads)	\
+	default(none) shared(Au, index, size, k) private (i, j, temp)
 	    for (i = k + 1; i < size; ++i){
 		temp = Au[index[i]][k] / Au[index[k]][k];
 		for (j = k; j < size + 1; ++j){
@@ -71,8 +86,6 @@ int main(int argc, char* argv[])
 	}
 		
         /*Jordan elimination*/
-	#	pragma omp parallel for num_threads(thread_count)	\
-		default(none) shared(Au, index, size) private (i, temp)
 	for (k = size - 1; k > 0; --k){
 	    for (i = k - 1; i >= 0; --i ){
 		temp = Au[index[i]][k] / Au[index[k]][k];
@@ -86,6 +99,9 @@ int main(int argc, char* argv[])
 	    X[k] = Au[index[k]][size] / Au[index[k]][k];
     }
     GET_TIME(finish)
+
+    Lab3SaveOutput(X, size, finish - start);
+
     DestroyVec(X);
     DestroyMat(Au, size);
     free(index);

@@ -1,2 +1,6 @@
+REF
 gcc -g -fopenmp -Wall REF.c Lab3IO.c -o REF -lpthread -lm
-
+serialtester
+gcc -g -Wall serialtester.c Lab3IO.c -o serialtester -lpthread -lm
+datagen
+gcc -g -Wall datagen.c Lab3IO.c -o datagen -lpthread -lm
