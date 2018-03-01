@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
 
 	    /*calculating*/
 	    #	pragma omp parallel for num_threads(numThreads)	\
-	default(none) collapse(1) shared(Au, index, size, k) private (i, j, temp)
+	    default(none) collapse(1) shared(Au, index, size, k) private (i, j, temp)
 	    for (i = k + 1; i < size; ++i){
 		temp = Au[index[i]][k] / Au[index[k]][k];
 		for (j = k; j < size + 1; ++j){
@@ -86,6 +86,8 @@ int main(int argc, char* argv[])
 	}
 		
         /*Jordan elimination*/
+	#	pragma omp parallel for num_threads(numThreads)	\
+	default(none) collapse(1) shared(Au, index, size, k) private (i, j, temp)
 	for (k = size - 1; k > 0; --k){
 	    for (i = k - 1; i >= 0; --i ){
 		temp = Au[index[i]][k] / Au[index[k]][k];
