@@ -23,3 +23,16 @@ Overview:
 =====
 Please also find the detailed instructions in the comments of the individual files.
 
+
+=====
+Important files to run
+
+REF.c	This file contains the parallelized matrix multiplication code.
+
+-----
+To run REF.c, open a command window, navigate to the folder location with REF.c and type in the following lines.
+
+gcc -g -fopenmp -Wall REF.c Lab3IO.c -o REF -lpthread -lm
+./REF
+
+A size 1000 matrix is provided in the data_input file.  The output of REF is stored in data_output.

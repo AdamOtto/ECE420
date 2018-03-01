@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
 	    /*Pivoting*/
 	    temp = 0;
 	    j = 0;
-
+	
 	    for (i = k; i < size; ++i)
 		if (temp < Au[index[i]][k] * Au[index[i]][k]){
 		    temp = Au[index[i]][k] * Au[index[i]][k];
@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
 
 	    /*calculating*/
 	    #	pragma omp parallel for num_threads(numThreads)	\
-	default(none) shared(Au, index, size, k) private (i, j, temp)
+	default(none) collapse(1) shared(Au, index, size, k) private (i, j, temp)
 	    for (i = k + 1; i < size; ++i){
 		temp = Au[index[i]][k] / Au[index[k]][k];
 		for (j = k; j < size + 1; ++j){
