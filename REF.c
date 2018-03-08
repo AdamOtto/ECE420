@@ -93,32 +93,53 @@ int main (int argc, char* argv[]){
 
     //This is for processing and sending data
     if (my_rank != 0) {
-       //Do iterations
-       sprintf(greeting, "Greetings from process %d of %d!", my_rank, comm_sz);
+       //Create Message (double)
+       double rank = (double) my_rank;
+       //Send Message (double)
+       MPI_Send(&rank, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
 
-       //Send Message
+       //Do the calculations here
+       while(1 == 1){
+		vec_cp(r, r_pre, nodecount);
+		for ( i = my_rank - 1; i < nodecount; i += comm_sz - 1){
+			r[i] = 0;
+			//double node = 0;
+			for ( j = 0; j < nodehead[i].num_in_links; ++j) {
+				r[i] += r_pre[nodehead[i].inlinks[j]] / num_out_links[nodehead[i].inlinks[j]];
+				//node += r_pre[nodehead[i].inlinks[j]] / num_out_links[nodehead[i].inlinks[j]];
+			}
+			r[i] *= DAMPING_FACTOR;
+			r[i] += damp_const;
+
+			MPI_Send(&r[i], 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+			MPI_Recv(&rank, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+			MPI_Send(&i, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+			MPI_Recv(&rank, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		}
+	}
     }
-
-
-
 
     //This is "master" thread that does all the receiving
     else {  
        /* Print my message */
        printf("Greetings from process %d of %d!\n", my_rank, comm_sz);
 
-       int q;
-       for (q = 0; q < nodecount; q++) {
-          //Receive Message
-       } 
-
        printf("Node Count: %d\n", nodecount);
        //printf("r[0]: %f\n", r[0]);
+	double d;
+        int q;
+        for (q = 1; q < comm_sz; q++) {
+           //Receive Message(double)
+           MPI_Recv(&d, 1, MPI_DOUBLE, q, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+           //Print Message (double)
+           printf("Greetings from process %f of %d!\n", d, comm_sz);
+        }
 
        GET_TIME(start);
        // CORE CALCULATION
        do{
-           ++iterationcount;
+	/*
            vec_cp(r, r_pre, nodecount);
            for ( i = 0; i < nodecount; ++i){
                r[i] = 0;
@@ -127,13 +148,40 @@ int main (int argc, char* argv[]){
                r[i] *= DAMPING_FACTOR;
                r[i] += damp_const;
            }
-	   //printf("r(%d)[0]: %f\n", iterationcount, r[0]);
+        */
+	++iterationcount;
+	printf("Iteration: %d", iterationcount);
+	//printf("\tr[7] = %f", r[7]);
+	printf("\n");
+	vec_cp(r, r_pre, nodecount);
+	//printf("r_pre after vec_cp = %f\n", r_pre[7]);
+	for( i = 0; i < nodecount; i += comm_sz - 1) {
+		//printf("\ti: %d\n", i);
+		for (q = 1; q < comm_sz; q++) {
+			//printf("\tWating for response from %d... ", q);
+			MPI_Recv(&d, 1, MPI_DOUBLE, q, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			//printf("Got it! ", q);
+			r[i + (q - 1)] = d;
+			//printf("Sending response.\n", q);
+			MPI_Send(&d, 1, MPI_DOUBLE, q, 0, MPI_COMM_WORLD);
+
+			int temp = 0;			
+			MPI_Recv(&temp, 1, MPI_DOUBLE, q, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			MPI_Send(&d, 1, MPI_DOUBLE, q, 0, MPI_COMM_WORLD);
+
+			printf("%d = %d\tr[%d] = %f\n", i + (q - 1), temp, temp, r[i + (q - 1)]);
+		}
+	}
+
        }while(rel_error(r, r_pre, nodecount) >= EPSILON);
        GET_TIME(finish);
 
        printf("Program converges at %d th iteration.\n", iterationcount);
 
        printf("Done\n%lf\n", finish - start);
+       
+       Lab4_saveoutput(r, nodecount, finish - start);
+       printf("Output saved.");       
 
        // post processing
        node_destroy(nodehead, nodecount);
@@ -143,4 +191,6 @@ int main (int argc, char* argv[]){
     /* Shut down MPI */
     MPI_Finalize(); 
     /*-------------------------------------------------------------------*/
+
+    return 0;
 }

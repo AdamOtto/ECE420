@@ -1,10 +1,11 @@
 REF
 mpicc -g -Wall REF.c Lab4_IO.c -o REF -lpthread -lm
 
-mpirun -np 4 ./REF
-(number of processes = 4)
+mpirun -np 5 ./REF
+(number of processes = 5)
 
 serialtester
-gcc -g -Wall serialtester.c Lab3IO.c -o serialtester -lpthread -lm
+gcc -g -Wall serialtester.c Lab4_IO.c -o serialtester -lpthread -lm
+
 datatrim
 gcc datatrim.c -o datatrim
