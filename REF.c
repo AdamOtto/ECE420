@@ -99,22 +99,19 @@ int main (int argc, char* argv[]){
        MPI_Send(&rank, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
 
        //Do the calculations here
-       while(1 == 1){
-		vec_cp(r, r_pre, nodecount);
+       while(1 == 1){	
+		MPI_Bcast(r_pre, nodecount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
 		for ( i = my_rank - 1; i < nodecount; i += comm_sz - 1){
 			r[i] = 0;
 			//double node = 0;
 			for ( j = 0; j < nodehead[i].num_in_links; ++j) {
 				r[i] += r_pre[nodehead[i].inlinks[j]] / num_out_links[nodehead[i].inlinks[j]];
-				//node += r_pre[nodehead[i].inlinks[j]] / num_out_links[nodehead[i].inlinks[j]];
 			}
 			r[i] *= DAMPING_FACTOR;
 			r[i] += damp_const;
-
+			
 			MPI_Send(&r[i], 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-			MPI_Recv(&rank, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-			MPI_Send(&i, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
 			MPI_Recv(&rank, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		}
 	}
@@ -137,39 +134,15 @@ int main (int argc, char* argv[]){
         }
 
        GET_TIME(start);
-       // CORE CALCULATION
        do{
-	/*
-           vec_cp(r, r_pre, nodecount);
-           for ( i = 0; i < nodecount; ++i){
-               r[i] = 0;
-               for ( j = 0; j < nodehead[i].num_in_links; ++j)
-                   r[i] += r_pre[nodehead[i].inlinks[j]] / num_out_links[nodehead[i].inlinks[j]];
-               r[i] *= DAMPING_FACTOR;
-               r[i] += damp_const;
-           }
-        */
 	++iterationcount;
-	printf("Iteration: %d", iterationcount);
-	//printf("\tr[7] = %f", r[7]);
-	printf("\n");
 	vec_cp(r, r_pre, nodecount);
-	//printf("r_pre after vec_cp = %f\n", r_pre[7]);
+	MPI_Bcast(r_pre, nodecount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	for( i = 0; i < nodecount; i += comm_sz - 1) {
-		//printf("\ti: %d\n", i);
 		for (q = 1; q < comm_sz; q++) {
-			//printf("\tWating for response from %d... ", q);
 			MPI_Recv(&d, 1, MPI_DOUBLE, q, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			//printf("Got it! ", q);
 			r[i + (q - 1)] = d;
-			//printf("Sending response.\n", q);
 			MPI_Send(&d, 1, MPI_DOUBLE, q, 0, MPI_COMM_WORLD);
-
-			int temp = 0;			
-			MPI_Recv(&temp, 1, MPI_DOUBLE, q, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			MPI_Send(&d, 1, MPI_DOUBLE, q, 0, MPI_COMM_WORLD);
-
-			printf("%d = %d\tr[%d] = %f\n", i + (q - 1), temp, temp, r[i + (q - 1)]);
 		}
 	}
 
