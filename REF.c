@@ -97,11 +97,11 @@ int main (int argc, char* argv[]){
        double rank = (double) my_rank;
        //Send Message (double)
        MPI_Send(&rank, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-
+       
        //Do the calculations here
-       while(1 == 1){	
+       while(1 == 1){		
 		MPI_Bcast(r_pre, nodecount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
+		
 		for ( i = my_rank - 1; i < nodecount; i += comm_sz - 1){
 			r[i] = 0;
 			//double node = 0;
@@ -148,6 +148,8 @@ int main (int argc, char* argv[]){
 
        }while(rel_error(r, r_pre, nodecount) >= EPSILON);
        GET_TIME(finish);
+
+       MPI_Abort(MPI_COMM_WORLD,1337);
 
        printf("Program converges at %d th iteration.\n", iterationcount);
 
