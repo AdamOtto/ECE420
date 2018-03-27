@@ -1,5 +1,6 @@
 REF
 mpicc -g -Wall REF.c Lab4_IO.c -o REF -lpthread -lm
+mpicc -g -Wall REF2.c Lab4_IO.c -o REF2 -lpthread -lm
 
 mpirun -np 5 ./REF
 (number of processes = 5)

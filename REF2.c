@@ -1,4 +1,4 @@
- /*
+/*
     Test the result stored in "data_output" against a serial implementation.
 
     -----
@@ -97,26 +97,41 @@ int main (int argc, char* argv[]){
        double rank = (double) my_rank;
        //Send Message (double)
        MPI_Send(&rank, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-       
+       double * buffer;
+       int bufferSize = 0;
+       int startIndex = 0;
+       int endIndex = 0;
+       int chunksize = (nodecount / (comm_sz - 1));
+       if(my_rank == comm_sz - 1){
+		bufferSize = nodecount - ((comm_sz - 2) * chunksize);
+		buffer = malloc(bufferSize * sizeof(double));
+		startIndex = (comm_sz - 2) * chunksize;
+		endIndex = nodecount;
+       }
+       else{
+		bufferSize = chunksize;
+		buffer = malloc(chunksize * sizeof(double));
+		startIndex = (my_rank - 1) * chunksize;
+		endIndex = startIndex + chunksize;
+       }
        //Do the calculations here
        while(1 == 1){		
 		MPI_Bcast(r_pre, nodecount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-		
-		for ( i = my_rank - 1; i < nodecount; i += comm_sz - 1){
+		int index = 0;
+		for ( i = startIndex; i < endIndex; i += 1){
 			r[i] = 0;
-			//double node = 0;
 			for ( j = 0; j < nodehead[i].num_in_links; ++j) {
 				r[i] += r_pre[nodehead[i].inlinks[j]] / num_out_links[nodehead[i].inlinks[j]];
 			}
 			r[i] *= DAMPING_FACTOR;
 			r[i] += damp_const;
-			
-			//MPI_Send(&r[i], 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-			//MPI_Recv(&rank, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			MPI_Sendrecv(&r[i], 1, MPI_DOUBLE, 0, 0,
-				     &rank, 1, MPI_DOUBLE, 0, 0,
-				     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			buffer[index] = r[i];
+			index++;
+			//printf("%d:r[%d] = %f\n"my_rank, i, r[i]);
 		}
+
+		MPI_Send(buffer, bufferSize, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+		MPI_Recv(&rank, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	}
     }
 
@@ -127,7 +142,9 @@ int main (int argc, char* argv[]){
 
        printf("Node Count: %d\n", nodecount);
        //printf("r[0]: %f\n", r[0]);
-	double d;
+	double d = 0;
+	int chunksize = nodecount / (comm_sz - 1);
+	double * buffer;
         int q;
         for (q = 1; q < comm_sz; q++) {
            //Receive Message(double)
@@ -141,17 +158,37 @@ int main (int argc, char* argv[]){
 	++iterationcount;
 	vec_cp(r, r_pre, nodecount);
 	MPI_Bcast(r_pre, nodecount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-	for( i = 0; i < nodecount; i += comm_sz - 1) {
-		for (q = 1; q < comm_sz; q++) {
-			//MPI_Recv(&d, 1, MPI_DOUBLE, q, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			//r[i + (q - 1)] = d;
-			//MPI_Send(&d, 1, MPI_DOUBLE, q, 0, MPI_COMM_WORLD);
-			MPI_Sendrecv(&iterationcount, 1, MPI_DOUBLE, q, 0,
-				     &d, 1, MPI_DOUBLE, q, 0,
-				     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			r[i + (q - 1)] = d;
-			
+	for (q = 1; q < comm_sz; q++) {		
+		int startIndex = 0;
+		int endIndex = 0;
+		int bufferSize = 0;
+		int ierr;
+		if(q == comm_sz - 1){
+			bufferSize = nodecount - ((comm_sz - 2) * chunksize);
+			startIndex = (comm_sz - 2) * chunksize;
+			endIndex = nodecount;
 		}
+		else{
+			bufferSize = chunksize;
+			startIndex = (q - 1) * chunksize;
+			endIndex = startIndex + chunksize;
+		}
+		buffer = malloc(bufferSize * sizeof(double));
+		//printf("startIndex: %d, EndIndex: %d, bufferSize: %d\n",startIndex, endIndex, bufferSize);
+
+		//printf("iter: %d, q: %d, waiting...",iterationcount,q);
+		ierr = MPI_Recv(buffer, bufferSize, MPI_DOUBLE, q, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		//printf("done\n",i,q);		
+		MPI_Send(&d, 1, MPI_DOUBLE, q, 0, MPI_COMM_WORLD);
+
+		int index = 0;
+
+		for (i = startIndex; i < endIndex; i++)
+		{	
+			r[i] = buffer[index];
+			index++;
+		}
+		free(buffer);		
 	}
 
        }while(rel_error(r, r_pre, nodecount) >= EPSILON);
@@ -169,7 +206,7 @@ int main (int argc, char* argv[]){
        // post processing
        node_destroy(nodehead, nodecount);
        free(num_in_links); free(num_out_links);
-       MPI_Abort(MPI_COMM_WORLD,1337);
+       //MPI_Abort(MPI_COMM_WORLD,1337);
     }
     /* Shut down MPI */
     MPI_Finalize(); 
