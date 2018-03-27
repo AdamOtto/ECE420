@@ -104,7 +104,7 @@ int main (int argc, char* argv[]){
 		
 		for ( i = my_rank - 1; i < nodecount; i += comm_sz - 1){
 			r[i] = 0;
-			//double node = 0;
+
 			for ( j = 0; j < nodehead[i].num_in_links; ++j) {
 				r[i] += r_pre[nodehead[i].inlinks[j]] / num_out_links[nodehead[i].inlinks[j]];
 			}
@@ -136,20 +136,25 @@ int main (int argc, char* argv[]){
        GET_TIME(start);
        do{
 	++iterationcount;
+	printf("iterationcout: %d\n", iterationcount);
 	vec_cp(r, r_pre, nodecount);
 	MPI_Bcast(r_pre, nodecount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	for( i = 0; i < nodecount; i += comm_sz - 1) {
 		for (q = 1; q < comm_sz; q++) {
-			MPI_Recv(&d, 1, MPI_DOUBLE, q, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			r[i + (q - 1)] = d;
-			MPI_Send(&d, 1, MPI_DOUBLE, q, 0, MPI_COMM_WORLD);
+			if (i + q <= nodecount){
+				printf("i: %d, q: %d, waiting...",i,q);
+				MPI_Recv(&d, 1, MPI_DOUBLE, q, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+				printf("done\n",i,q);
+				r[i + (q - 1)] = d;
+				MPI_Send(&d, 1, MPI_DOUBLE, q, 0, MPI_COMM_WORLD);
+			}			
 		}
 	}
 
        }while(rel_error(r, r_pre, nodecount) >= EPSILON);
        GET_TIME(finish);
 
-       MPI_Abort(MPI_COMM_WORLD,1337);
+       
 
        printf("Program converges at %d th iteration.\n", iterationcount);
 
@@ -161,7 +166,7 @@ int main (int argc, char* argv[]){
        // post processing
        node_destroy(nodehead, nodecount);
        free(num_in_links); free(num_out_links);
-
+       //MPI_Abort(MPI_COMM_WORLD,1337);
     }
     /* Shut down MPI */
     MPI_Finalize(); 
