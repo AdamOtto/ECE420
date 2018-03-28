@@ -101,19 +101,18 @@ int main (int argc, char* argv[]){
        int bufferSize = 0;
        int startIndex = 0;
        int endIndex = 0;
-       int chunksize = (nodecount / (comm_sz - 1));
+       int chunksize = (nodecount / (comm_sz));
        if(my_rank == comm_sz - 1){
-		bufferSize = nodecount - ((comm_sz - 2) * chunksize);
-		buffer = malloc(bufferSize * sizeof(double));
-		startIndex = (comm_sz - 2) * chunksize;
+		bufferSize = nodecount - ((comm_sz - 1) * chunksize);
+		startIndex = (comm_sz - 1) * chunksize;
 		endIndex = nodecount;
        }
        else{
 		bufferSize = chunksize;
-		buffer = malloc(chunksize * sizeof(double));
-		startIndex = (my_rank - 1) * chunksize;
+		startIndex = (my_rank) * chunksize;
 		endIndex = startIndex + chunksize;
        }
+	buffer = malloc(chunksize * sizeof(double));
        //Do the calculations here
        while(1 == 1){		
 		MPI_Bcast(r_pre, nodecount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
@@ -131,7 +130,7 @@ int main (int argc, char* argv[]){
 		}
 
 		MPI_Send(buffer, bufferSize, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-		MPI_Recv(&rank, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		//MPI_Recv(&rank, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	}
     }
 
@@ -143,7 +142,7 @@ int main (int argc, char* argv[]){
        printf("Node Count: %d\n", nodecount);
        //printf("r[0]: %f\n", r[0]);
 	double d = 0;
-	int chunksize = nodecount / (comm_sz - 1);
+	int chunksize = nodecount / (comm_sz);
 	double * buffer;
         int q;
         for (q = 1; q < comm_sz; q++) {
@@ -158,28 +157,43 @@ int main (int argc, char* argv[]){
 	++iterationcount;
 	vec_cp(r, r_pre, nodecount);
 	MPI_Bcast(r_pre, nodecount, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	int startIndex = 0;
+	int endIndex = 0;
+	int bufferSize = 0;
+	int ierr;
+
+	startIndex = 0;
+	endIndex = chunksize;
+	//printf("iter: %d, q: %d\n",iterationcount,my_rank);
+	//printf("startIndex: %d, EndIndex: %d, bufferSize: %d\n",startIndex, endIndex, bufferSize);
+	for ( i = startIndex; i < endIndex; i += 1){
+		r[i] = 0;
+		for ( j = 0; j < nodehead[i].num_in_links; ++j) {
+			r[i] += r_pre[nodehead[i].inlinks[j]] / num_out_links[nodehead[i].inlinks[j]];
+		}
+		r[i] *= DAMPING_FACTOR;
+		r[i] += damp_const;
+	}	
+
 	for (q = 1; q < comm_sz; q++) {		
-		int startIndex = 0;
-		int endIndex = 0;
-		int bufferSize = 0;
-		int ierr;
 		if(q == comm_sz - 1){
-			bufferSize = nodecount - ((comm_sz - 2) * chunksize);
-			startIndex = (comm_sz - 2) * chunksize;
+			bufferSize = nodecount - ((comm_sz - 1) * chunksize);
+			startIndex = (comm_sz - 1) * chunksize;
 			endIndex = nodecount;
 		}
 		else{
 			bufferSize = chunksize;
-			startIndex = (q - 1) * chunksize;
+			startIndex = q * chunksize;
 			endIndex = startIndex + chunksize;
 		}
 		buffer = malloc(bufferSize * sizeof(double));
-		//printf("startIndex: %d, EndIndex: %d, bufferSize: %d\n",startIndex, endIndex, bufferSize);
 
 		//printf("iter: %d, q: %d, waiting...",iterationcount,q);
 		ierr = MPI_Recv(buffer, bufferSize, MPI_DOUBLE, q, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		//printf("done\n",i,q);		
-		MPI_Send(&d, 1, MPI_DOUBLE, q, 0, MPI_COMM_WORLD);
+		//MPI_Send(&d, 1, MPI_DOUBLE, q, 0, MPI_COMM_WORLD);
+
+		//printf("startIndex: %d, EndIndex: %d, bufferSize: %d\n",startIndex, endIndex, bufferSize);
 
 		int index = 0;
 
