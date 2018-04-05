@@ -1,0 +1,9 @@
+Read me for ECE 420 Lab4
+Mar. 2017
+
+To compile the program, navigate to the project folder and copy/past the mpicc commands into your terminal.
+We have two solutions, REF and REF2.  REF contains our initial serialized code and REF2 contains the optimized version of REF.
+Once the programs are made, use the mpirun command (also in the makefile) to run the code.
+The program will only work if there is a "data_input" and "data_output" file in the project folder.  These can be generated using the datatrim program, its compile code is at the bottom of the makefile.
+
+After the program has run, you can check if the solution is correct using serialtester.  The code to compile this are in the makefile.

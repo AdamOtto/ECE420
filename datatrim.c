@@ -1,6 +1,6 @@
 /*
-The script to fetch the subset of the original data and add links to the node with no out going links The index is remapped to make it continuous in the resulting subset of data. Index start from 0.
-As for the output file, first line is the number of the included nodes, the following lines indicating the directed links with the first number as the index of the source node and the second number as the index of the destination node.
+The script to fetch the subset of the original data and convert it to a good shape. Index start from 0.
+As for the output file, every line represents a directed link with the first number as the index of the source node and the second number as the index of the destination node.
 
 -----
 Compiling:
@@ -15,12 +15,12 @@ Options:
     -b    specify the upper bound index to be included in the original data (default 5300, generating data with 1112 nodes)
     -i    specify the input path (default "./web-Stanford.txt")
     -o    specify the output path (default "./data_input") 
-    -n    tag to shut down the auto link addition for the nodes that have no out going links
+    -n    tag to open the auto link addition for the nodes that have no out going links
 
 -----
 Outputs:
     Output file:
-    data_input:     first line indicating the number of the nodes, the following lines indicating the directed links with the first number as the index of the source node and the second number as the index of the destination node.
+    data_input:     Output file in which every line indicates a directed link with the first number as the index of the source node and the second number as the index of the destination node.
 
 -----
 Error returns:
@@ -30,7 +30,7 @@ Error returns:
 -----
 Example:
     >datatrim
-    fetch the graph from the original, add links for the nodes with no out going links and store the result in "./data_input", 
+    fetch the graph from the original and store the result in "./data_input", 
    
     >datagen -s 10000 -n
     fetch the graph with index less than 10000 and store it in "data_input"
@@ -46,7 +46,7 @@ http://snap.stanford.edu/data/web-Stanford.html
 
 int main (int argc, char* argv[]){
     int option;
-    int b_extend = 1;
+    int b_extend = 0;
     char *INPATH = "web-Stanford.txt";
     char *OUTPATH = "data_input";
     int BOUND = 5300, src, dst;
@@ -63,7 +63,7 @@ int main (int argc, char* argv[]){
             case 'b': BOUND = strtol(optarg, NULL, 10); break;
             case 'i': INPATH = optarg; break;
             case 'o': OUTPATH = optarg; break;
-            case 'n': b_extend = 0; break;
+            case 'n': b_extend = 1; break;
             case '?': return -1;
         }
     if ((fp_ori = fopen(INPATH,"r")) == NULL){
@@ -109,7 +109,7 @@ int main (int argc, char* argv[]){
         fgets(tempstore, 100, fp_ori);
     }
     free(tempstore);
-    fprintf(fp_dest, "%d\n", Ncount);
+    //fprintf(fp_dest, "%d\n", Ncount);
     if (b_extend){ 
         num_out_links = malloc(Ncount * sizeof(int));
         for (i = 0; i < Ncount; ++i) num_out_links[i] = 0;

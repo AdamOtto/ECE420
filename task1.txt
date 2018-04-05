@@ -1,0 +1,3 @@
+var temp = sc.textFile("ECE420/data_input")
+
+var result = temp.map(line => line.split("\t")).map( a => (a(1),1)).reduceByKey(_ + _).takeOrdered(1)(Ordering[Int].reverse.on(_._2))
