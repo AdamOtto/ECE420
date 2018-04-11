@@ -1,0 +1,6 @@
+var temp = sc.textFile("ECE420/data_input")
+
+var result = temp.map(line => line.split("\t")).map( a => (a(0).toInt,1)).reduceByKey(_ + _).map(_.swap).sortByKey(false,1).groupByKey.max()._2.toList
+
+result.collect().foreach(println)
+result.take(10).foreach(println)
